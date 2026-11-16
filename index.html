@@ -201,7 +201,11 @@ input.num{font-family:var(--font-num);font-size:20px}
           <label for="rec-amount">金額</label>
           <input id="rec-amount" class="num" type="number" inputmode="numeric" min="1" placeholder="0">
         </div>
-        <div class="info"><span>付款方式 <b id="rec-source">現金</b></span><span>日期 <b id="rec-date">11/16</b></span></div>
+        <div class="field">
+          <label for="rec-date">日期</label>
+          <input id="rec-date" type="date">
+        </div>
+        <div class="info"><span>付款方式 <b id="rec-source">現金</b></span></div>
       </div>
       <div class="card">
         <div class="field">
@@ -427,7 +431,7 @@ let delArmed=false;
 $("chips").innerHTML=CATS.map(c=>`<button type="button" class="chip" data-k="${c.k}" aria-pressed="false"><span class="dot" style="background:${c.c}">${c.k[0]}</span>${c.k}</button>`).join("");
 $("chips").addEventListener("click",e=>{const b=e.target.closest(".chip"); if(!b)return; cur.cat=b.dataset.k; paintChips(); $("rec-err").textContent="";});
 function paintChips(){document.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.k===cur.cat)));}
-["rec-name","rec-amount"].forEach(id=>$(id).addEventListener("input",()=>$("rec-err").textContent=""));
+["rec-name","rec-amount","rec-date"].forEach(id=>$(id).addEventListener("input",()=>$("rec-err").textContent=""));
 
 function openRecord(id,mode){
   const r=db.records.find(x=>x.id===id);
@@ -438,7 +442,7 @@ function openRecord(id,mode){
   $("rec-name").value=r?r.name:"";
   $("rec-amount").value=r?r.amount:"";
   $("rec-source").textContent=r?r.source:"現金";
-  $("rec-date").textContent=short(r?r.date:isoOf(new Date()));
+  $("rec-date").value=r?r.date:isoOf(new Date()); $("rec-date").max=isoOf(new Date());
   $("rec-del").hidden=(mode!=="edit"); $("rec-del").textContent="刪除這筆"; delArmed=false;
   $("rec-err").textContent="";
   paintChips(); show("rec");
@@ -454,8 +458,12 @@ $("rec-done").addEventListener("click",()=>{
   if(!name){$("rec-err").textContent="請填寫名稱";return;}
   if(!(amt>0)){$("rec-err").textContent="請輸入大於 0 的金額";return;}
   if(!cur.cat){$("rec-err").textContent="請選一個類別再按完成";return;}
-  if(cur.id===null){db.records.push({id:Date.now(),name,amount:amt,cat:cur.cat,source:"現金",date:isoOf(new Date())}); view=CUR_YM;}
-  else{const r=db.records.find(x=>x.id===cur.id); Object.assign(r,{name,amount:amt,cat:cur.cat});}
+  const date=$("rec-date").value;
+  if(!date){$("rec-err").textContent="請選擇日期";return;}
+  if(date>isoOf(new Date())){$("rec-err").textContent="日期不能晚於今天";return;}
+  if(cur.id===null){db.records.push({id:Date.now(),name,amount:amt,cat:cur.cat,source:"現金",date});}
+  else{const r=db.records.find(x=>x.id===cur.id); Object.assign(r,{name,amount:amt,cat:cur.cat,date});}
+  view=ymOf(date);
   save(); show("home"); toast("已記錄 "+name+" "+money(amt));
 });
 $("rec-del").addEventListener("click",()=>{
